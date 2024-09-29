@@ -2,7 +2,7 @@
 
 project(rtmp_audio_live)
 
-include(FetchContent)
+#include(FetchContent)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -11,11 +11,30 @@ set(CMAKE_AUTORCC ON)
 #set(CMAKE_WIN32_EXECUTABLE ON)
 
 # 设置QT路径
-set(QT_BIN_DIR C:/Qt/Qt5.14.2/5.14.2/msvc2017_64/bin)
+#set(QT_BIN_DIR C:/Qt/Qt5.14.2/5.14.2/msvc2017_64/bin)
 # 
-set(Qt5_DIR C:/Qt/Qt5.14.2/5.14.2/msvc2017_64/lib/cmake/Qt5)
+#set(Qt5_DIR C:/Qt/Qt5.14.2/5.14.2/msvc2017_64/lib/cmake/Qt5)
+
+set(QT_BIN_DIR D:/Qt/Qt5.12.12/5.12.12/msvc2017_64/bin)
+# 
+set(Qt5_DIR D:/Qt/Qt5.12.12/5.12.12/msvc2017_64/lib/cmake/Qt5)
 
 set(CMAKE_BUILD_TYPE Debug)
+
+
+if (CMAKE_CL_64) 
+    if (CMAKE_BUILD_TYPE MATCHES "Debug")
+        set(BUILD_TYPE "x64-Debug")
+    else()
+        set(BUILD_TYPE "x64-Release")
+    endif()
+else()
+    if (CMAKE_BUILD_TYPE MATCHES "Debug")
+        set(BUILD_TYPE "x86-Debug")
+    else()
+        set(BUILD_TYPE "x86-Release")
+    endif()
+endif()
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 set(CMAKE_CXX_STANDARD 17)
@@ -38,12 +57,17 @@ if (NOT EXISTS ${SDK_DIR}/4rd/fdk-aac/libAACenc/include/aacenc_lib.h22)
     #FetchContent_MakeAvailable(fdk-aac ${${SDK_DIR}/3rd})
 endif()
 
+set(BUILD_SHARED_LIBS OFF)
+#set(LIBRARY_BUILD_TYPE STATIC)
+
 set(CMAKE_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/out/build/${BUILD_TYPE})
 message(STATUS ${CMAKE_BINARY_DIR})
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_SYSTEM_NAME}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_SYSTEM_NAME}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_SYSTEM_NAME}/bin)
+
+set(FFMPEG_PATH ${SDK_DIR}/3rd/ffmpeg-n6.0-win64-lgpl)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
@@ -68,11 +92,11 @@ include_directories(${SDK_DIR}/3rd/fdk-aac/libSYS/include)
 include_directories(${SDK_DIR}/3rd/fdk-aac/win32)
 include_directories(${SDK_DIR}/3rd/portaudio/include)
 
-include_directories(${SDK_DIR}/3rd/ffmpeg-n6.0-win64-lgpl/include)
+include_directories(${FFMPEG_PATH}/include)
 
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-link_directories(${SDK_DIR}/3rd/ffmpeg-n6.0-win64-lgpl/lib)
+link_directories(${FFMPEG_PATH}/lib)
 
 file(GLOB SRCS 
 ./*.cpp
@@ -107,6 +131,7 @@ ${OTHER_LIBS}
 
 add_subdirectory(./3rd/librtmp)
 add_subdirectory(./3rd/portaudio)
+#set(BUILD_SHARED_LIBS OFF CACHE STRING "Build shared libraries" FORCE)
 add_subdirectory(./3rd/fdk-aac)
 
 
@@ -115,4 +140,16 @@ if (EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/translations/qt_zh_CN.qm)
 else ()
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
         COMMAND ${QT_BIN_DIR}/windeployqt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+        
+endif()
+
+file(GLOB FFMPEG_DEP_FILE
+${FFMPEG_PATH}/bin/*.dll
+)
+
+if (EXISTS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/avutil-58.dll)
+    message("file exists")
+else ()
+   add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy ${FFMPEG_DEP_FILE} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
